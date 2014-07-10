@@ -116,6 +116,8 @@ class MysqlReader(object):
                 return 'decimal'
             elif data_type.startswith('double'):
                 return 'double precision'
+            elif data_type.startswith('binary'):
+                return 'uuid'
             else:
                 return data_type
 
