@@ -7,6 +7,7 @@ from datetime import datetime, date, timedelta
 from psycopg2.extensions import QuotedString, Binary, AsIs
 from pytz import timezone
 
+import binascii
 
 class PostgresWriter(object):
     """Base class for :py:class:`mysql2pgsql.lib.postgres_file_writer.PostgresFileWriter`
@@ -106,6 +107,8 @@ class PostgresWriter(object):
                     return default, 'time without time zone'
             elif column['type'] in ('blob', 'binary', 'longblob', 'mediumblob', 'tinyblob', 'varbinary'):
                 return default, 'bytea'
+            elif column['type'] == 'uuid':
+                return default, 'uuid'
             elif column['type'] in ('tinytext', 'mediumtext', 'longtext', 'text'):
                 return default, 'text'
             elif column['type'].startswith('enum'):
@@ -168,6 +171,8 @@ class PostgresWriter(object):
             elif isinstance(row[index], (str, unicode, basestring)):
                 if column_type == 'bytea':
                     row[index] = Binary(row[index]).getquoted()[1:-8] if row[index] else row[index]
+                elif column_type == 'uuid':
+                    row[index] = binascii.b2a_hex(row[index])
                 elif 'text[' in column_type:
                     row[index] = '{%s}' % ','.join('"%s"' % v.replace('"', r'\"') for v in row[index].split(','))
                 else:
