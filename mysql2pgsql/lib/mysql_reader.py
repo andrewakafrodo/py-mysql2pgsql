@@ -9,7 +9,7 @@ import MySQLdb.cursors
 
 re_column_length = re.compile(r'\((\d+)\)')
 re_column_precision = re.compile(r'\((\d+),(\d+)\)')
-re_key_1 = re.compile(r'CONSTRAINT `(\w+)` FOREIGN KEY \(`(\w+)`\) REFERENCES `(\w+)` \(`(\w+)`\)')
+re_key_1 = re.compile(r'CONSTRAINT `(\w+)` FOREIGN KEY \((.*)\) REFERENCES `(\w+)` \((.*)\)')
 re_key_2 = re.compile(r'KEY `(\w+)` \((.*)\)')
 re_key_3 = re.compile(r'PRIMARY KEY +\((.*)\)')
 
@@ -175,9 +175,10 @@ class MysqlReader(object):
                 match_data = re_key_1.search(line)
                 if match_data:
                     index['name'] = match_data.group(1)
-                    index['column'] = match_data.group(2)
+                    index['column'] = [re.search(r'`(\w+)`', col).group(1) for col in match_data.group(2).split(',')]
                     index['ref_table'] = match_data.group(3)
-                    index['ref_column'] = match_data.group(4)
+                    index['ref_column'] = [re.search(r'`(\w+)`', col).group(1) for col in match_data.group(4).split(',')]
+                    index['cascade'] = 'ON DELETE CASCADE' in line
                     self._foreign_keys.append(index)
                     continue
                 match_data = re_key_2.search(line)

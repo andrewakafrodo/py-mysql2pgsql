@@ -276,12 +276,14 @@ class PostgresWriter(object):
     def write_constraints(self, table):
         constraint_sql = []
         for key in table.foreign_keys:
-            constraint_sql.append("""ALTER TABLE "%(table_name)s" ADD FOREIGN KEY ("%(column_name)s")
-            REFERENCES "%(ref_table_name)s"(%(ref_column_name)s);""" % {
+            constraint_sql.append("""ALTER TABLE "%(table_name)s" ADD FOREIGN KEY (%(column_name)s)
+            REFERENCES "%(ref_table_name)s"(%(ref_column_name)s) %(cascade)s;""" % {
                 'table_name': table.name,
-                'column_name': key['column'],
+                'column_name': ', '.join('%s' % col for col in key['column']),
                 'ref_table_name': key['ref_table'],
-                'ref_column_name': key['ref_column']})
+                'ref_column_name': ', '.join('%s' % col for col in key['ref_column']),
+                'cascade' : 'ON DELETE CASCADE' if key['cascade'] else ""})
+
         return constraint_sql
 
     def write_triggers(self, table):
