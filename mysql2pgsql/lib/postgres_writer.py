@@ -81,7 +81,6 @@ class PostgresWriter(object):
                 else:
                     return default, 'timestamp without time zone'
             elif column['type'] == 'date':
-                default = None
                 return default, 'date'
             elif column['type'] == 'timestamp':
                 if column['default'] == None:
