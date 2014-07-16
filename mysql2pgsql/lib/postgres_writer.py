@@ -133,23 +133,6 @@ class PostgresWriter(object):
                     
         return '%s%s%s' % (column_type, (default if not default == None else ''), null)
 
-    def table_comments(self, table):
-        comments = StringIO()
-        if table.comment: 
-          comments.write(self.table_comment(table.name, table.comment))
-        for column in table.columns:
-          comments.write(self.column_comment(table.name, column))
-        return comments.getvalue() 
-
-    def column_comment(self, tablename, column):
-      if not column['comment']: 
-        return (' COMMENT ON COLUMN %s.%s is %s;' % ( tablename, column['name'], QuotedString(column['comment']).getquoted()))
-      else: 
-        return ''
-
-    def table_comment(self, tablename, comment):
-        return (' COMMENT ON TABLE %s is %s;' % ( tablename, QuotedString(comment).getquoted()))
-
     def process_row(self, table, row):
         """Examines row data from MySQL and alters
         the values when necessary to be compatible with
@@ -243,7 +226,6 @@ class PostgresWriter(object):
 
         table_sql.append('DROP TABLE IF EXISTS "%s" CASCADE;' % table.name)
         table_sql.append('CREATE TABLE "%s" (\n%s\n)\nWITHOUT OIDS;' % (table.name.encode('utf8'), columns))
-        table_sql.append( self.table_comments(table))
         return (table_sql, serial_key_sql)
 
     def write_indexes(self, table):
@@ -251,17 +233,18 @@ class PostgresWriter(object):
         primary_index = [idx for idx in table.indexes if idx.get('primary', None)]
         index_prefix = self.index_prefix
         if primary_index:
+            no__id_primary_key = [col.replace('_id', '') for col in primary_index[0]['columns']]
             index_sql.append('ALTER TABLE "%(table_name)s" ADD CONSTRAINT "%(index_name)s_pkey" PRIMARY KEY(%(column_names)s);' % {
                     'table_name': table.name,
-                    'index_name': '%s%s_%s' % (index_prefix, table.name, 
-                                        '_'.join(primary_index[0]['columns'])),
+                    'index_name': '%s%s_%s' % (index_prefix, table.name, '_'.join(no__id_primary_key)),
                     'column_names': ', '.join('"%s"' % col for col in primary_index[0]['columns']),
                     })
         for index in table.indexes:
             if 'primary' in index:
                 continue
+            no__id_index = [col.replace('_id', '') for col in index['columns']]
             unique = 'UNIQUE ' if index.get('unique', None) else ''
-            index_name = '%s%s_%s' % (index_prefix, table.name, '_'.join(index['columns']))
+            index_name = '%s%s_%s' % (index_prefix, table.name, '_'.join(no__id_index))
             index_sql.append('DROP INDEX IF EXISTS "%s" CASCADE;' % index_name)
             index_sql.append('CREATE %(unique)sINDEX "%(index_name)s" ON "%(table_name)s" (%(column_names)s);' % {
                     'unique': unique,

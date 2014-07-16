@@ -85,7 +85,6 @@ class MysqlReader(object):
             self._foreign_keys = []
             self._triggers = []
             self._columns = self._load_columns()
-            self._comment = self._load_table_comment()
             self._load_indexes()
             self._load_triggers()
 
@@ -135,7 +134,6 @@ class MysqlReader(object):
                 length = length_match.group(1) if length_match else \
                     precision_match.group(1) if precision_match else None
                 name = res[0]
-                comment = res[8]
                 field_type = self._convert_type(res[1])
                 desc = {
                     'name': name,
@@ -147,7 +145,6 @@ class MysqlReader(object):
                     'primary_key': res[4] == 'PRI',
                     'auto_increment': res[6] == 'auto_increment',
                     'default': res[5] if not res[5] == 'NULL' else None,
-                    'comment': comment,
                     'select': '`%s`' % name if not field_type.startswith('enum') else
                         'CASE `%(name)s` WHEN "" THEN NULL ELSE `%(name)s` END' % {'name': name},
                     }
@@ -159,12 +156,6 @@ class MysqlReader(object):
 
             return fields
 
-        def _load_table_comment(self):
-            table_status = self.reader.db.query('SHOW TABLE STATUS WHERE Name="%s"' % self.name, one=True)
-            comment = table_status[17]
-            return comment
-
-          
         def _load_indexes(self):
             explain = self.reader.db.query('SHOW CREATE TABLE `%s`' % self.name, one=True)
             explain = explain[1]
@@ -218,10 +209,6 @@ class MysqlReader(object):
         @property
         def columns(self):
             return self._columns
-
-        @property
-        def comment(self):
-            return self._comment
 
         @property
         def indexes(self):
